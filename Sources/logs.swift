@@ -14,17 +14,34 @@
 
 import Foundation
 
-extension String {
+fileprivate struct LogQueues {
+    private static let internalQueue = DispatchQueue(label: "LogQueues.fetch")
+    private static var qs: [URL : DispatchQueue] = [:]
+    
+    static func get(_ url: URL) -> DispatchQueue {
+        return internalQueue.sync {
+            if let q = qs[url] { return q }
+            let q = DispatchQueue(label: "LogQueues.\(url)")
+            qs[url] = q
+            return q
+        }
+    }
+}
+
+fileprivate extension String {
     func append(to url: URL,
                 allowLossyConversion lossy: Bool = false,
                 encoding enc: String.Encoding = .utf8) {
-        let handle = try! FileHandle(forWritingTo: url)
-        defer { handle.closeFile() }
-        handle.seekToEndOfFile()
         guard let dat = data(using: enc, allowLossyConversion: lossy) else {
             preconditionFailure("Couldn't convert \(self.debugDescription) to data.")
         }
-        handle.write(dat)
+        let q = LogQueues.get(url)
+        q.async {
+            let handle = try! FileHandle(forWritingTo: url)
+            defer { handle.closeFile() }
+            handle.seekToEndOfFile()
+            handle.write(dat)
+        }
     }
 }
 

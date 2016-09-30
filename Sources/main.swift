@@ -17,15 +17,17 @@ import Foundation
 fileprivate let cmd = CommandLine.arguments[0]
 
 func usage() {
-    print("USAGE: \(cmd) OUTPUT_DIR")
+    print("USAGE: \(cmd) OUTPUT_DIR [INTERVAL]")
+    print("INTERVAL is in seconds and defaults to 20 minutes.")
 }
 
 func main() throws {
-    guard CommandLine.arguments.count == 2 else {
+    guard 2...3 ~= CommandLine.arguments.count else {
         print("\(cmd) needs an output directory.")
         usage()
         exit(1)
     }
+    
     let outputDir = CommandLine.arguments[1]
     let mgr = FileManager.default
     var isdir: ObjCBool = false
@@ -35,6 +37,18 @@ func main() throws {
         usage()
         exit(1)
     }
+
+    let interval: UInt32
+    if CommandLine.arguments.count > 2 {
+        guard let i = UInt32(CommandLine.arguments[2]) else {
+            print("\(CommandLine.arguments[2]) is not a number of seconds.")
+            usage()
+            exit(1)
+        }
+        interval = i
+    } else {
+        interval = 20 * 60 // default to 20 minutes
+    }
     
     if !exists {
         // Create the output directory if it doesn't exist.
@@ -43,14 +57,20 @@ func main() throws {
 
     let output = URL(fileURLWithPath: outputDir)
 
-    let complete = DispatchSemaphore(value: 0)
-    
-    testConnection {
-        log(result: $0, toDirectory: output)
-        complete.signal()
-    }
+    repeat {
+        let start = Date()
+        testConnection {
+            log(result: $0, toDirectory: output)
+        }
+        let elapsed = Date().timeIntervalSince(start)
 
-    complete.wait()
+        print("\(start): tests took a combined \(elapsed) seconds")
+        
+        if UInt32(elapsed) < interval {
+            // protect against underflow
+            sleep(interval - UInt32(elapsed))
+        }
+    } while true
 }
 
 try main()
