@@ -35,8 +35,9 @@ func main() throws {
         usage()
         exit(1)
     }
+    
     if !exists {
-        print("Creating \(outputDir) ")
+        // Create the output directory if it doesn't exist.
         try mgr.createDirectory(atPath: outputDir, withIntermediateDirectories: true)
     }
 
