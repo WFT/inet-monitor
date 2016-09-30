@@ -14,13 +14,13 @@
 
 import Foundation
 
+fileprivate let cmd = CommandLine.arguments[0]
+
 func usage() {
-    let cmd = CommandLine.arguments[0]
-    print("\(cmd) OUTPUT_DIR")
+    print("USAGE: \(cmd) OUTPUT_DIR")
 }
 
 func main() throws {
-    let cmd = CommandLine.arguments[0]
     guard CommandLine.arguments.count == 2 else {
         print("\(cmd) needs an output directory.")
         usage()
